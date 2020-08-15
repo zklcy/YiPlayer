@@ -20,6 +20,8 @@
             android:layout_height="wrap_content"
             android:layout_gravity="center|bottom"
             android:id="@+id/subtitle_view"/>
+
+        <include layout="@layout/video_controller" />
     </FrameLayout>
-    <include layout="@layout/video_controller" />
+
 </RelativeLayout>

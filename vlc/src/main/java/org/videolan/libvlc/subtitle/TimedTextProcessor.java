@@ -33,6 +33,10 @@ public abstract class TimedTextProcessor {
     private TimedTextObject mTimedTextObject;
     private Handler mTimedTextHandler = new Handler();
 
+    public Collection<Caption> getSubtitle(){
+        return mTimedTextObject.captions.values();
+    }
+
     public abstract void onTimedText(Spanned spanned);
 
     public abstract int getCurrentPosition();

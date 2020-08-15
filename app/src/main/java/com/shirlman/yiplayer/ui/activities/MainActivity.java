@@ -10,9 +10,11 @@ import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 
+import com.coder.Control.VideoCheck;
 import com.shirlman.yiplayer.R;
 import com.shirlman.yiplayer.events.VideoEvents;
 import com.shirlman.yiplayer.models.VideoGroup;
@@ -25,6 +27,9 @@ import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
 
 import java.util.List;
+
+import static com.coder.Control.FFmpegCmd.CMD_AddBGTrack;
+import static com.coder.Control.FFmpegCmd.test;
 
 public class MainActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener {
@@ -49,8 +54,10 @@ public class MainActivity extends AppCompatActivity
 
         NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
         navigationView.setNavigationItemSelectedListener(this);
-
         getSupportFragmentManager().beginTransaction().add(R.id.fragment_container, new LocalVideoGroupFragment()).commit();
+
+        Log.d("ZK", "Test JNI " + test());
+//        ffmpegTest();
     }
 
     @Override
@@ -152,8 +159,42 @@ public class MainActivity extends AppCompatActivity
 
     @Subscribe(threadMode = ThreadMode.MAIN)
     public void onEventMainThread(VideoEvents.PlayLocalVideo event) {
+        VideoCheck videoCheck = new VideoCheck();
+        String filename = event.getVideoInfo().getPath();
+        boolean ret = videoCheck.isHaveBGTrack(filename);
+        videoCheck.release();
+        if(!ret){
+            CMD_AddBGTrack(filename);
+            Log.d(TAG, "onEventMainThread: Add background audio track "+filename);
+        }else {
+            Log.d(TAG, filename+" already have backgroud audio track");
+        }
+
         Intent intent = new Intent(MainActivity.this, VideoActivity.class);
         intent.putExtra(VideoInfo.class.getSimpleName(), event.getVideoInfo());
         startActivity(intent);
     }
+
+
+
+//    private void ffmpegTest() {
+//        new Thread() {
+//            @Override
+//            public void run() {
+//                long startTime = System.currentTimeMillis();
+//                String input =
+//                        Environment.getExternalStorageDirectory().getPath() + File.separator +
+//                                "DCIM" + File.separator + "test.mp3";
+//                String output =
+//                        Environment.getExternalStorageDirectory().getPath() + File.separator +
+//                                "DCIM" + File.separator + "output.mp3";
+//
+//                String cmd = "ffmpeg -y -i %s -vn -acodec copy -ss %s -t %s %s";
+//                String result = String.format(cmd, input, "00:00:01", "00:00:10", output);
+//                FFmpegCmd.runCmd(result.split(" "));
+//                Log.d("FFmpegTest", "run: 耗时：" + (System.currentTimeMillis() - startTime));
+//            }
+//        }.start();
+//    }
+
 }

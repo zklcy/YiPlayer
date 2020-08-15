@@ -7,6 +7,7 @@ package org.videolan.libvlc.media;
 
 import android.annotation.TargetApi;
 import android.content.Context;
+import android.graphics.Paint;
 import android.graphics.PixelFormat;
 
 import android.net.Uri;
@@ -23,7 +24,10 @@ import android.widget.MediaController;
 
 import org.videolan.libvlc.*;
 import org.videolan.libvlc.MediaPlayer;
+import org.videolan.libvlc.subtitle.Caption;
 import org.videolan.libvlc.subtitle.TimedTextProcessor;
+
+import java.util.Collection;
 
 public class VideoView extends SurfaceView
         implements MediaController.MediaPlayerControl, IVLCVout.Callback, MediaPlayer.EventListener {
@@ -47,6 +51,7 @@ public class VideoView extends SurfaceView
     private final int MSG_ERROR = 2;
     private final int MSG_BUFFERING_UPDATE = 3;
     private final int MSG_CURRENT_TIME_UPDATE = 4;
+//    private final int MSG_PLAY_RESUME = 5;
 
     private OnCompletionListener mOnCompletionListener;
     private OnPreparedListener mOnPreparedListener;
@@ -54,6 +59,24 @@ public class VideoView extends SurfaceView
     private OnBufferingUpdateListener mOnBufferingUpdateListener;
     private OnCurrentTimeUpdateListener mOnCurrentTimeUpdateListener;
     private OnTimedTextListener mOnTimedTextListener;
+
+    public OnMessageExtendListener getmOnMessageExtendListener() {
+        return mOnMessageExtendListener;
+    }
+
+    public void setmOnMessageExtendListener(OnMessageExtendListener mOnMessageExtendListener) {
+        this.mOnMessageExtendListener = mOnMessageExtendListener;
+    }
+
+    private OnMessageExtendListener mOnMessageExtendListener;
+
+    public long getTime(){
+        return mMediaPlayer.getTime();
+    }
+
+    public Collection<Caption> getSubtitle(){
+        return mTimedTextProcessor.getSubtitle();
+    }
 
     public interface OnCompletionListener {
         void onCompletion();
@@ -73,6 +96,10 @@ public class VideoView extends SurfaceView
 
     public interface OnCurrentTimeUpdateListener {
         void onCurrentTimeUpdate(int currentTime);
+    }
+
+    public interface OnMessageExtendListener{
+        void onMessageExtendListener(Message msg);
     }
 
     public interface OnTimedTextListener {
@@ -115,6 +142,10 @@ public class VideoView extends SurfaceView
         mTimedTextProcessor.updateTimedText();
     }
 
+    public Handler getHandler(){
+        return mHandler;
+    }
+
     private Handler mHandler = new Handler() {
         public void handleMessage (Message msg) {
             switch(msg.what) {
@@ -148,6 +179,10 @@ public class VideoView extends SurfaceView
                     }
 
                     break;
+                default:
+                    if(mOnMessageExtendListener != null){
+                        mOnMessageExtendListener.onMessageExtendListener(msg);
+                    }
             }
         }
     };
@@ -155,19 +190,19 @@ public class VideoView extends SurfaceView
     public VideoView(Context context) {
         super(context);
 
-        init();
+//        init();
     }
 
     public VideoView(Context context, AttributeSet attrs) {
         this(context, attrs, 0);
 
-        init();
+//        init();
     }
 
     public VideoView(Context context, AttributeSet attrs, int defStyleAttr) {
         this(context, attrs, defStyleAttr, 0);
 
-        init();
+//        init();
     }
 
     @TargetApi(Build.VERSION_CODES.LOLLIPOP)
@@ -354,6 +389,12 @@ public class VideoView extends SurfaceView
     public int getAudioSessionId() {
         return mMediaPlayer.getAudioTrack();
     }
+
+    public void setAudioSessionId(int index){mMediaPlayer.setAudioTrack(index);}
+
+    public int getAudioTracksCount(){return mMediaPlayer.getAudioTracksCount();}
+
+    public MediaPlayer.TrackDescription[] getAudioTracks() { return mMediaPlayer.getAudioTracks();}
 
     @Override
     public void onNewLayout(IVLCVout vlcVout, int width, int height, int visibleWidth, int visibleHeight, int sarNum, int sarDen) {

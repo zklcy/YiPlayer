@@ -1,5 +1,6 @@
 package com.shirlman.yiplayer.ui.activities;
 
+import android.annotation.SuppressLint;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
@@ -26,12 +27,14 @@ import android.widget.Toast;
 import com.shirlman.yiplayer.R;
 import com.shirlman.yiplayer.core.OnlineQueryService;
 import com.shirlman.yiplayer.models.ICibaResponse;
+import com.coder.Control.PlayBackControl;
 import com.shirlman.yiplayer.models.ShooterSubtitleResponse;
 import com.shirlman.yiplayer.models.VideoInfo;
 import com.shirlman.yiplayer.models.YoudaoResponse;
 import com.shirlman.yiplayer.ui.adapters.OnlineSubtitleAdapter;
 import com.shirlman.yiplayer.util.StringUtils;
 
+import org.videolan.libvlc.MediaPlayer;
 import org.videolan.libvlc.media.VideoView;
 
 import java.util.ArrayList;
@@ -49,6 +52,8 @@ import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 import retrofit2.converter.simplexml.SimpleXmlConverterFactory;
 
+import static com.coder.Control.PlayControlMethod.CTRL_NORMAL;
+
 
 /**
  * Created by KB-Server on 2016/6/22.
@@ -59,6 +64,7 @@ public class VideoActivity extends AppCompatActivity {
     private VideoView mVideoView;
     private VideoInfo mVideoInfo;
     private SurfaceView mSubtitleView;
+    private PlayBackControl mPlayBackControl;
 
     // Video controller
     private View mVideoControllerLayout;
@@ -67,7 +73,7 @@ public class VideoActivity extends AppCompatActivity {
     private TextView mVideoControllerCurrentTime;
     private TextView mVideoControllerTotalTime;
     private SeekBar mVideoControllerVideoSeekBar;
-    private ImageButton mVideoControllerPlayOrPause;
+    public ImageButton mVideoControllerPlayOrPause;
     private ImageButton mVideoControllerVideoLock;
     private ImageButton mVideoControllerSettings;
     private boolean mIsLocked;
@@ -88,10 +94,15 @@ public class VideoActivity extends AppCompatActivity {
     private EditText mOnlineSubtitleSearchBox;
     private View mOnlineSubtitleSearchButton;
 
+
     // Handler message
     private final int MSG_HIDE_VIDEO_CONTROLLER = 0;
     private final int MSG_HIDE_EXPLANATION = 1;
 
+
+
+    private int ReplayStartTime =0;
+    @SuppressLint("WrongViewCast")
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -136,13 +147,21 @@ public class VideoActivity extends AppCompatActivity {
         mTranslationView.setVisibility(View.INVISIBLE);
 
         String videoPath = mVideoInfo.getPath();
+
+//        CMD_DelVoice(videoPath);
+//        CMD_DelSubtitle(videoPath);
+
         mVideoView.setVideoPath(videoPath);
 
+//        if(!isHaveBackGroundMusic()){
+//            CMD_AddBGTrack(videoPath);
+//        }
 //        mVideoView.addSubtitleSource(mSubtitleView, videoPath);
         mVideoView.addTimedTextSource(videoPath);
         mVideoView.setOnPreparedListener(mOnPreparedListener);
 
         mVideoView.start();
+
     }
 
     @Override
@@ -185,6 +204,8 @@ public class VideoActivity extends AppCompatActivity {
         mVideoView.setOnCurrentTimeUpdateListener(mOnCurrentTimeUpdateListener);
         mVideoView.setOnCompletionListener(mOnCompletionListener);
         mVideoView.setOnTimedTextListener(mOnTimedTextListener);
+
+        mPlayBackControl = new PlayBackControl(mVideoView , CTRL_NORMAL);
     }
 
     private void startHideVideoControllerTimer() {
@@ -232,6 +253,7 @@ public class VideoActivity extends AppCompatActivity {
                     mTranslationView.setVisibility(View.INVISIBLE);
 
                     break;
+
             }
         }
     };
@@ -240,6 +262,7 @@ public class VideoActivity extends AppCompatActivity {
         mVideoControllerRootView.setVisibility(View.VISIBLE);
         startHideVideoControllerTimer();
         mIsVideoControllerShowing = true;
+
     }
 
     private void hideVideoController() {
@@ -247,9 +270,36 @@ public class VideoActivity extends AppCompatActivity {
         mIsVideoControllerShowing = false;
     }
 
+    private void showAudioTrackName(int index){
+        MediaPlayer.TrackDescription[] lstTracks = mVideoView.getAudioTracks();
+        String trackname = lstTracks[index].name;
+        Toast.makeText(this,trackname,Toast.LENGTH_SHORT);
+    }
+
+    private void setAudioChannelIndex(int audioChannelIndex){
+        MediaPlayer.TrackDescription[] LstAudioTracks = mVideoView.getAudioTracks();
+        int index = audioChannelIndex % LstAudioTracks.length;
+        mVideoView.setAudioSessionId(LstAudioTracks[index].id);
+        Log.d("ZK", "setAudioTrack id="+LstAudioTracks[index].id+" name="+LstAudioTracks[index].name);
+    }
+
+    private int getAudioChannelIndex(int audioSessionID){
+        MediaPlayer.TrackDescription[] LstAudioTracks = mVideoView.getAudioTracks();
+        int i = 0;
+        for (MediaPlayer.TrackDescription track:LstAudioTracks){
+            if(audioSessionID == track.id){
+                return i;
+            }
+            i++;
+        }
+        return -1;
+    }
+
+
     private View.OnClickListener mVideoControllerOnClickListener = new View.OnClickListener() {
         @Override
         public void onClick(View view) {
+            setAudioChannelIndex(getAudioChannelIndex(mVideoView.getAudioSessionId())+1);
             if(mIsVideoControllerShowing) {
                 hideVideoController();
             } else {
@@ -307,6 +357,7 @@ public class VideoActivity extends AppCompatActivity {
                     mTimedSubtitleView.setVisibility(View.INVISIBLE);
                 }
             }
+
         }
     };
 
@@ -461,6 +512,11 @@ public class VideoActivity extends AppCompatActivity {
                     mVideoControllerVideoSeekBar.setProgress(currentTime * 100 / mVideoView.getDuration());
                 }
             }
+            try {
+                mPlayBackControl.ControlProcess();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
         }
     };
 
@@ -597,6 +653,7 @@ public class VideoActivity extends AppCompatActivity {
                 mVideoControllerCurrentTime.setText(
                         StringUtils.getTimeDisplayString(progress * mVideoView.getDuration() / 100));
             }
+            mPlayBackControl.reSetTime();
         }
 
         @Override

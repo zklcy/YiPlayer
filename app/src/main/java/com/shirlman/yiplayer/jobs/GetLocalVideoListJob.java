@@ -24,7 +24,8 @@ import java.util.List;
  */
 public class GetLocalVideoListJob extends Job {
     public GetLocalVideoListJob() {
-        super(new Params(JobPriority.HIGH).requireNetwork());
+//        super(new Params(JobPriority.HIGH).requireNetwork());
+        super(new Params(JobPriority.HIGH));
     }
 
     @Override

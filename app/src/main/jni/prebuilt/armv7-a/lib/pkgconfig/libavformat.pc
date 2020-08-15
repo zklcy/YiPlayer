@@ -1,0 +1,14 @@
+prefix=/home/zk/FFmpeg-master/android/armv7-a
+exec_prefix=${prefix}
+libdir=/home/zk/FFmpeg-master/android/armv7-a/lib
+includedir=/home/zk/FFmpeg-master/android/armv7-a/include
+
+Name: libavformat
+Description: FFmpeg container format library
+Version: 58.49.100
+Requires: 
+Requires.private: libavcodec >= 58.97.102, libswresample >= 3.8.100, libavutil >= 56.57.100
+Conflicts:
+Libs: -L${libdir}  -lavformat 
+Libs.private: -lm -lz
+Cflags: -I${includedir}
